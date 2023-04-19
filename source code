@@ -1,0 +1,191 @@
+# importing and reading the dataset
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy import stats
+
+fe = pd.read_csv('PEP1.csv')  
+
+# creating separate dataframes for numerical and categorical variables
+#EDA – Missing value treatment
+numerical_var = fe.select_dtypes(include=['int','float'])
+
+numerical_df = pd.DataFrame(data=numerical_var)
+numerical_df.head(3)
+numerical_df.isna().sum()
+numerical_df.LotFrontage.value_counts(dropna=False)
+LotFrncol_mean = numerical_df['LotFrontage'].mean()
+
+numerical_df['LotFrontage'].fillna(LotFrncol_mean, inplace=True)
+numerical_df.GarageYrBlt.value_counts(dropna=False)
+Garyrcol_mode = numerical_df['GarageYrBlt'].mode()
+numerical_df['GarageYrBlt'].fillna('Garyrcol_mode', inplace=True)
+categorical_var = fe.select_dtypes(include=['object'])
+categorical_df = pd.DataFrame(data=categorical_var)
+
+categorical_df.isna().sum()
+count_missing = categorical_df.isna().sum()[categorical_df.isna().sum()>0]
+perc_missing = round((categorical_df.isna().sum()[categorical_df.isna().sum()>0]/len(categorical_df))*100,2)
+pd.concat([count_missing , perc_missing]).T
+
+columns_to_drop = ['MiscFeature', 'Fence', 'PoolQC', 'FireplaceQu','Alley']
+categorical_newdf = categorical_df.drop(columns=columns_to_drop)
+
+categorical_newdf.isna().sum()
+categorical_newdf.GarageCond.value_counts(dropna=False)
+Garcondcol_mode = categorical_newdf['GarageCond'].mode()
+Garcondcol_mode
+categorical_freshdf['GarageCond'].fillna ('Garcondcol_mode', inplace=True)
+categorical_newdf.GarageQual.value_counts(dropna=False)
+GarageQual_mode = categorical_newdf['GarageQual'].mode()
+GarageQual_mode
+categorical_freshdf['GarageQual'].fillna ('GarageQual_mode', inplace=True)
+categorical_newdf.GarageFinish.value_counts(normalize=False,dropna=False)
+GarageFinish_mode = categorical_newdf['GarageFinish'].mode()
+GarageFinish_mode
+categorical_newdf['GarageFinish'].fillna ('GarageFinish_mode', inplace=True)
+categorical_newdf.GarageType.value_counts(normalize=False,dropna=False)
+GarageType_fill = categorical_newdf['GarageType'].mode()
+GarageType_fill
+categorical_newdf['GarageType'].fillna ('GarageType_fill', inplace=True)
+categorical_newdf.isna().sum()
+Electrical_fill = categorical_newdf['Electrical'].mode()
+Electrical_fill
+categorical_newdf['Electrical'].fillna ('Electrical_fill', inplace=True)
+fe.loc[(fe.BsmtFinType1.isna())&(fe.BsmtFinType2 == 'Rec'),['BsmtFinType1','BsmtFinType2']]
+fe.loc[(fe.BsmtQual.isna())&(fe.BsmtCond == 'Gd'),['BsmtQual','BsmtCond']]
+ 
+bsmtcolumns_to_drop = ['BsmtCond', 'BsmtQual','BsmtExposure', 'BsmtFinType1', 'BsmtFinType2']
+
+categorical_freshdf = categorical_newdf.drop(columns=bsmtcolumns_to_drop)
+categorical_freshdf.head(3)
+categorical_freshdf.isna().sum()
+One Hot Encoding
+
+cat_cols = categorical_freshdf.select_dtypes(include=['object']).columns
+
+for col in cat_cols:
+    one_hot = pd.get_dummies(categorical_freshdf[col], prefix=col)
+    categorical_freshdf= categorical_freshdf.drop(col, axis=1)
+    categorical_freshdf= categorical_freshdf.join(one_hot)
+categorical_freshdf.head(10)
+Skewness and Distribution
+print("Skewness of the SalesPrice is", fe['SalePrice'].skew())
+fe['SalePrice'].describe()
+x = fe.SalePrice
+sns.set_style('whitegrid')
+sns.histplot(x)
+plt.show()
+
+fe['SalePrice_log'] = np.log(fe.SalePrice)
+x = fe.SalePrice_log
+sns.histplot(x)
+plt.show()
+Pair Plot
+sns.pairplot(combined_data, vars=["SalePrice", "OverallQual", "GrLivArea", "GarageCars", "TotalBsmtSF"])
+plt.show()
+Box Plot
+sns.boxplot(x=fe["SalePrice"])
+plt.show()
+Z Score
+z_scores = stats.zscore(combined_data["SalePrice"])
+abs_z_scores = np.abs(z_scores)
+outlier_indices = np.where(abs_z_scores > 3)
+outlier_indices
+z_scores
+IQR method
+Q1 = combined_data["SalePrice"].quantile(0.25)
+Q3 = combined_data["SalePrice"].quantile(0.75)
+IQR = Q3 - Q1
+outlier_indices = combined_data[(combined_data["SalePrice"] < Q1 - 1.5*IQR) | (combined_data["SalePrice"] > Q3 + 1.5*IQR)].index
+outlier_indices
+Significant variables identification
+Correlation Matrix
+plt.figure(figsize=(20,20))
+sns.heatmap(fe.corr())
+plt.show()
+corr matrix between numerical variables
+
+# Selecting the numerical variables we want to calculate the correlation between
+numerical_variables = ['SalePrice', 'LotArea', 'YearBuilt', 'TotalBsmtSF', 'GrLivArea', 'FullBath', 'GarageArea','GarageCars']
+corr_nv = combined_data[numerical_variables]
+corr_matrix = corr_nv.corr(method='spearman')
+print(corr_matrix.loc['SalePrice', 'GrLivArea'])
+Count Plot for Bivariate Analysis of Categorical Data
+sns.countplot(x='GrLivArea', hue='SaleCondition', data=categorical_freshdf)
+plt.show()
+sns.countplot(x='LotConfig', hue='SaleCondition', data=categorical_freshdf)
+plt.show()
+Merging Cat df and Num df as one dataframe
+
+combined_data = pd.concat([numerical_df, categorical_freshdf], axis=1)
+combined_data.head(5)
+
+P values and Chi square values
+
+# Identify the categorical variables
+categorical_cols = fe.select_dtypes(include=['object']).columns
+categorical_cols
+Print the unique values for each categorical variable
+for col in categorical_cols:
+    print(col, categorical_cols[col].unique())
+from scipy.stats import chi2_contingency
+
+# Perform a chi-square test for each categorical variable
+for col in categorical_cols:
+    contingency_table = pd.crosstab(combined_data[col], combined_data['SalePrice'])
+    chi2, pval, dof, expected = chi2_contingency(contingency_table)
+    print(col, "p-value:", pval)
+
+from scipy.stats import ttest_ind
+
+# Perform a t-test for GrLivArea
+above_median = combined_data[combined_data['GrLivArea'] >= combined_data['GrLivArea'].median()]['SalePrice']
+below_median = combined_data[combined_data['GrLivArea'] < combined_data['GrLivArea'].median()]['SalePrice']
+t_stat, pval = ttest_ind(above_median, below_median)
+print("GrLivArea p-value:", pval)
+
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+
+# Define the ANOVA model formula
+model = ols('SalePrice ~ GrLivArea', data=combined_data).fit()
+
+# Perform ANOVA
+anova_table = sm.stats.anova_lm(model, typ=2)
+print(anova_table)
+from scipy.stats import f_oneway
+# Perform the ANOVA test
+f_statistic, p_value = f_oneway(combined_data['GrLivArea'], combined_data['OverallQual'], combined_data['GarageCars'])
+
+# Print the p-value
+print("The p-value is:", p_value)
+from scipy.stats import f_oneway
+# Perform the ANOVA test
+f_statistic, p_value = f_oneway(combined_data['GrLivArea'], combined_data['OverallQual'], combined_data['SalePrice'])
+
+# Print the p-value
+print("The p-value is:", p_value)
+# Perform the ANOVA test
+f_statistic, p_value = f_oneway(combined_data['TotalBsmtSF'], combined_data['GarageCars'], combined_data['SalePrice'])
+
+# Print the p-value
+print("The p-value is:", p_value)
+# Perform the ANOVA test
+f_statistic, p_value = f_oneway(combined_data['SalePrice'], combined_data['LotConfig_Inside'])
+
+# Print the p-value
+print("The p-value is:", p_value)
+## Chi Square Test
+freq_table = pd.crosstab(combined_data['OverallQual'], combined_data['SalePrice'])
+
+# Performing the chi-square test
+chi2_stat, p_val, dof, expected = chi2_contingency(freq_table)
+
+# Printing the results
+print("Chi-Square Statistic: ", chi2_stat)
+print("Degrees of Freedom: ", dof)
+print("P-Value: ", p_val)
+print("Expected Frequencies: ", expected)
+
